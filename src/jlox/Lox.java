@@ -7,14 +7,22 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Scanner;
 import java.util.stream.Collectors;
 
 public class Lox {
+    static boolean hadError = false;
+    public static void error(int line, String message) {
+        report(line, "", message);
+    }
+
+    public static void report(int line, String where, String message) {
+        System.err.println("[line " + line + "] Error" + where + ": " + message);
+        hadError = true;
+    }
     public static void run(String source) {
         Scanner scanner = new Scanner(source);
 
-        List<String> tokens = scanner.tokens().map(token -> {
+        List<Token> tokens = scanner.scan().stream().map(token -> {
             System.out.println(token);
 
             return token;
@@ -24,6 +32,10 @@ public class Lox {
     public static void runFile(String file) throws IOException {
         byte[] contents = Files.readAllBytes(Paths.get(file));
         run(new String(contents, Charset.defaultCharset()));
+
+        if (hadError) {
+            System.exit(1);
+        }
     }
 
     public static void runPrompt() throws IOException {
@@ -31,10 +43,11 @@ public class Lox {
         BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
 
         for (;;) {
-            System.out.println("> ");
+            System.out.print("> ");
 
             String line = bufferedReader.readLine();
             run(line);
+            hadError = false;
         }
 
     }
