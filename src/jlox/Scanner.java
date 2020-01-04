@@ -10,15 +10,19 @@ import static jlox.TokenType.*;
 public class Scanner {
     private String source;
     private final List<Token> tokens = new ArrayList<>();
+    private final Map<String, TokenType> keywords = new HashMap<>();
 
     private int start = 0;
     private int current = 0;
     private int line = 1;
 
-    private static final Map<String, TokenType> keywords;
+    Scanner(String source) {
+        this.source = source;
 
-    static {
-        keywords = new HashMap<>();
+        /**
+         * I like this here more because it's part of the context for the Scanner and I had to look up when a static
+         * block is initialized, so probably wasn't the best idea.
+        */
         keywords.put("and",    AND);
         keywords.put("class",  CLASS);
         keywords.put("else",   ELSE);
@@ -35,10 +39,6 @@ public class Scanner {
         keywords.put("true",   TRUE);
         keywords.put("var",    VAR);
         keywords.put("while",  WHILE);
-    }
-
-    Scanner(String source) {
-        this.source = source;
     }
 
     public boolean isEnd() {
@@ -62,7 +62,7 @@ public class Scanner {
         if (isEnd()) return false;
         if (source.charAt(current) != c) return false;
 
-        current ++;
+        current++;
         return true;
     }
 
@@ -152,6 +152,26 @@ public class Scanner {
                 if (match('/')) {
                     // A comment goes until the end of the line.
                     while (peek() != '\n' && !isEnd()) nextChar();
+                } if (match('*')) {
+                    // TODO: Seems like it works with at least double nesting. Keep testing?
+                    // Might be trivial, but I'm implementing this off the top of my head.
+                    int nested = 1;
+                    while (nested > 0 && !isEnd()) {
+                        char next = nextChar();
+                        if (next == '\n') line++;
+
+                        if (next == '*' && peek() == '/') {
+                            nested--;
+                        }
+                        else if (next == '/' && peek() == '*') {
+                            nested++;
+                        }
+                    }
+
+                    if (nested != 0) {
+                        Lox.error(line, "Unterminated comment.");
+                        return;
+                    }
                 } else {
                     addToken(SLASH);
                 }
